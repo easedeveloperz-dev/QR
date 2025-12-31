@@ -1,8 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Base application theme for Compose - minimal XML theme -->
-    <style name="Theme.MyApplication" parent="android:Theme.Material.Light.NoActionBar">
-        <item name="android:statusBarColor">@android:color/transparent</item>
-        <item name="android:navigationBarColor">@android:color/transparent</item>
+    <!-- Base application theme - Light Mode -->
+    <style name="Theme.QrCodePro" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@color/background_light</item>
+        <item name="android:navigationBarColor">@color/background_light</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowBackground">@color/background_light</item>
+    </style>
+    
+    <!-- Splash screen theme -->
+    <style name="Theme.QrCodePro.Splash" parent="Theme.QrCodePro">
+        <item name="android:windowBackground">@drawable/splash_background</item>
     </style>
 </resources>

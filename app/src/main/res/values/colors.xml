@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ========================================== -->
+    <!-- STUNNING CYBERPUNK COLOR PALETTE -->
+    <!-- ========================================== -->
+    
+    <!-- App Icon Colors -->
+    <color name="ic_launcher_background">#1A1A2E</color>
+    
+    <!-- Primary - Vibrant Teal -->
+    <color name="primary">#4ECDC4</color>
+    <color name="primary_light">#7EDDD6</color>
+    <color name="primary_dark">#2BA39B</color>
+    <color name="on_primary">#FFFFFF</color>
+    
+    <!-- Secondary - Coral Pop -->
+    <color name="secondary">#FF6B6B</color>
+    <color name="secondary_light">#FF9E9E</color>
+    <color name="secondary_dark">#CC4545</color>
+    <color name="on_secondary">#FFFFFF</color>
+    
+    <!-- Tertiary - Electric Purple -->
+    <color name="tertiary">#A78BFA</color>
+    <color name="tertiary_light">#C4B5FD</color>
+    <color name="tertiary_dark">#7C3AED</color>
+    
+    <!-- Background Colors - Light -->
+    <color name="background_light">#F8FAFA</color>
+    <color name="surface_light">#FFFFFF</color>
+    <color name="surface_variant_light">#E8F0F2</color>
+    
+    <!-- Background Colors - Dark (Cyberpunk) -->
+    <color name="background_dark">#0D0D1A</color>
+    <color name="surface_dark">#1A1A2E</color>
+    <color name="surface_variant_dark">#252542</color>
+    
+    <!-- Text Colors -->
+    <color name="text_primary_light">#1A1A2E</color>
+    <color name="text_secondary_light">#6B6B80</color>
+    <color name="text_primary_dark">#FFFFFF</color>
+    <color name="text_secondary_dark">#B0B0C0</color>
+    
+    <!-- Neon Accent Colors -->
+    <color name="neon_teal">#4ECDC4</color>
+    <color name="neon_coral">#FF6B6B</color>
+    <color name="neon_purple">#A78BFA</color>
+    <color name="neon_blue">#60A5FA</color>
+    <color name="neon_green">#34D399</color>
+    <color name="neon_yellow">#FBBF24</color>
+    <color name="neon_pink">#F472B6</color>
+    
+    <!-- Scanner Colors -->
+    <color name="scanner_frame">#4ECDC4</color>
+    <color name="scanner_overlay">#CC0D0D1A</color>
+    <color name="scanner_line">#4ECDC4</color>
+    
+    <!-- Status Colors -->
+    <color name="success">#00E676</color>
+    <color name="warning">#FFAB00</color>
+    <color name="error">#FF1744</color>
+    <color name="info">#00B0FF</color>
+    
+    <!-- Gradient Colors -->
+    <color name="gradient_start">#4ECDC4</color>
+    <color name="gradient_middle">#A78BFA</color>
+    <color name="gradient_end">#FF6B6B</color>
+    
+    <!-- Card Colors -->
+    <color name="card_dark_start">#1A1A2E</color>
+    <color name="card_dark_end">#252542</color>
+</resources>
