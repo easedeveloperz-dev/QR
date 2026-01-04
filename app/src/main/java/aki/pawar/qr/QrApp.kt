@@ -10,3 +10,4 @@ import dagger.hilt.android.HiltAndroidApp
 @HiltAndroidApp
 class QrApp : Application()
 
+

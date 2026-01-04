@@ -52,3 +52,4 @@ interface ScanHistoryDao {
     fun getScanCount(): Flow<Int>
 }
 
+

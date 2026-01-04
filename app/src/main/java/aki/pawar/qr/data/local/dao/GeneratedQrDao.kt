@@ -55,3 +55,4 @@ interface GeneratedQrDao {
     fun getGeneratedCount(): Flow<Int>
 }
 
+

@@ -317,3 +317,4 @@ enum class QrTypeOption(
     UPI("UPI Payment", "Generate payment QR code", "payment"),
 }
 
+

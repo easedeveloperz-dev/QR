@@ -44,6 +44,8 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Sms
 import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material.icons.filled.Wifi
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -191,9 +193,17 @@ private fun TypeSelectionScreen(
     onSelectType: (QrTypeOption) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Main options displayed prominently
+    val mainOptions = listOf(QrTypeOption.TEXT, QrTypeOption.URL)
+    // Other options displayed under "More"
+    val moreOptions = QrTypeOption.entries.filter { it !in mainOptions }
+    
+    var showMoreOptions by remember { mutableStateOf(false) }
+    
     Column(
         modifier = modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
         // Header with icon
@@ -239,16 +249,94 @@ private fun TypeSelectionScreen(
         
         Spacer(modifier = Modifier.height(20.dp))
         
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+        // Main options: Plain Text and URL - displayed prominently
+        Text(
+            text = "Quick Create",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        
+        Spacer(modifier = Modifier.height(12.dp))
+        
+        // Main options in a row - same card style as More Options
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            items(QrTypeOption.entries) { type ->
-                TypeCard(
-                    type = type,
-                    onClick = { onSelectType(type) }
+            mainOptions.forEach { type ->
+                Box(modifier = Modifier.weight(1f)) {
+                    TypeCard(
+                        type = type,
+                        onClick = { onSelectType(type) },
+                        isHighlighted = true
+                    )
+                }
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        // More options section
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "More Options",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            
+            IconButton(
+                onClick = { showMoreOptions = !showMoreOptions }
+            ) {
+                Icon(
+                    imageVector = if (showMoreOptions) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = if (showMoreOptions) "Collapse" else "Expand",
+                    tint = MaterialTheme.colorScheme.primary
                 )
+            }
+        }
+        
+        // Animated more options grid
+        AnimatedVisibility(
+            visible = showMoreOptions,
+            enter = fadeIn() + slideInVertically(),
+            exit = fadeOut() + slideOutVertically()
+        ) {
+            Column {
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                // Display more options in a grid (2 columns)
+                val chunkedOptions = moreOptions.chunked(2)
+                chunkedOptions.forEach { rowOptions ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        rowOptions.forEach { type ->
+                            Box(modifier = Modifier.weight(1f)) {
+                                TypeCard(
+                                    type = type,
+                                    onClick = { onSelectType(type) },
+                                    isHighlighted = false
+                                )
+                            }
+                        }
+                        // Add empty box if odd number of items
+                        if (rowOptions.size == 1) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
             }
         }
     }
@@ -257,7 +345,8 @@ private fun TypeSelectionScreen(
 @Composable
 private fun TypeCard(
     type: QrTypeOption,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    isHighlighted: Boolean = false
 ) {
     val gradientColors = getGradientForType(type)
     
@@ -267,21 +356,24 @@ private fun TypeCard(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isHighlighted) 4.dp else 2.dp),
         modifier = Modifier
+            .fillMaxWidth()
+            .height(160.dp) // Fixed height for uniform size
             .border(
-                width = 1.dp,
+                width = if (isHighlighted) 2.dp else 1.dp,
                 brush = Brush.linearGradient(
-                    colors = gradientColors.map { it.copy(alpha = 0.3f) }
+                    colors = if (isHighlighted) gradientColors else gradientColors.map { it.copy(alpha = 0.3f) }
                 ),
                 shape = RoundedCornerShape(20.dp)
             )
     ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxSize()
                 .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
             // Gradient icon background
             Box(
@@ -1016,7 +1108,8 @@ private fun TypeCardPreview() {
     aki.pawar.qr.ui.theme.QrAppTheme {
         TypeCard(
             type = QrTypeOption.URL,
-            onClick = {}
+            onClick = {},
+            isHighlighted = false
         )
     }
 }

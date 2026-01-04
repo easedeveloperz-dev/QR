@@ -57,3 +57,4 @@ class GeneratedQrRepository @Inject constructor(
         generatedQrDao.updateFavoriteStatus(id, isFavorite)
 }
 
+

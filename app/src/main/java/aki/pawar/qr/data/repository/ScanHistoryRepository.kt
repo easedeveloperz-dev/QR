@@ -55,3 +55,4 @@ class ScanHistoryRepository @Inject constructor(
         scanHistoryDao.updateFavoriteStatus(id, isFavorite)
 }
 
+

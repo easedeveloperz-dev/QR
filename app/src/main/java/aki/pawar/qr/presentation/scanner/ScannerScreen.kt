@@ -54,6 +54,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Wifi
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -93,6 +94,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.foundation.clickable
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -144,19 +147,6 @@ fun ScannerScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                     }
-                },
-                actions = {
-                    // Flash toggle
-                    IconButton(onClick = { viewModel.onEvent(ScannerEvent.ToggleFlash) }) {
-                        Icon(
-                            imageVector = if (state.isFlashOn) Icons.Default.FlashOn else Icons.Default.FlashOff,
-                            contentDescription = "Toggle Flash"
-                        )
-                    }
-                    // Gallery picker
-                    IconButton(onClick = { imagePickerLauncher.launch("image/*") }) {
-                        Icon(Icons.Default.Image, "Pick from Gallery")
-                    }
                 }
             )
         }
@@ -176,8 +166,12 @@ fun ScannerScreen(
                         }
                     )
                     
-                    // Scanner Overlay
-                    ScannerOverlayView()
+                    // Scanner Overlay with controls
+                    ScannerOverlayView(
+                        isFlashOn = state.isFlashOn,
+                        onToggleFlash = { viewModel.onEvent(ScannerEvent.ToggleFlash) },
+                        onPickFromGallery = { imagePickerLauncher.launch("image/*") }
+                    )
                 }
                 
                 // Result Card
@@ -210,6 +204,21 @@ fun ScannerScreen(
                         CircularProgressIndicator(color = Color.White)
                     }
                 }
+                
+                // Error message display
+                AnimatedVisibility(
+                    visible = state.error != null,
+                    enter = slideInVertically { -it } + fadeIn(),
+                    exit = slideOutVertically { -it } + fadeOut(),
+                    modifier = Modifier.align(Alignment.TopCenter)
+                ) {
+                    state.error?.let { errorMessage ->
+                        ErrorMessageCard(
+                            message = errorMessage,
+                            onDismiss = { viewModel.onEvent(ScannerEvent.ClearError) }
+                        )
+                    }
+                }
             } else {
                 // Permission request UI
                 PermissionRequestView(
@@ -223,6 +232,76 @@ fun ScannerScreen(
                     message = state.warningMessage,
                     onConfirm = { viewModel.onEvent(ScannerEvent.ConfirmAction) },
                     onDismiss = { viewModel.onEvent(ScannerEvent.DismissWarning) }
+                )
+            }
+        }
+    }
+}
+
+// Error message card displayed at the top
+@Composable
+private fun ErrorMessageCard(
+    message: String,
+    onDismiss: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Error icon
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.error.copy(alpha = 0.2f),
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Warning,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+            
+            Spacer(modifier = Modifier.width(16.dp))
+            
+            // Error message
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Scan Failed",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onErrorContainer
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f)
+                )
+            }
+            
+            // Dismiss button
+            IconButton(onClick = onDismiss) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Dismiss",
+                    tint = MaterialTheme.colorScheme.onErrorContainer
                 )
             }
         }
@@ -329,7 +408,11 @@ private fun CameraPreview(
 }
 
 @Composable
-private fun ScannerOverlayView() {
+private fun ScannerOverlayView(
+    isFlashOn: Boolean,
+    onToggleFlash: () -> Unit,
+    onPickFromGallery: () -> Unit
+) {
     val infiniteTransition = rememberInfiniteTransition(label = "scanner")
     
     // Animated scan line
@@ -465,7 +548,7 @@ private fun ScannerOverlayView() {
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 100.dp),
+                .padding(bottom = 140.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Box(
@@ -484,6 +567,78 @@ private fun ScannerOverlayView() {
                 )
             }
         }
+        
+        // Control buttons at the bottom
+        Row(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 48.dp),
+            horizontalArrangement = Arrangement.spacedBy(32.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Flash toggle button
+            ScannerControlButton(
+                icon = if (isFlashOn) Icons.Default.FlashOn else Icons.Default.FlashOff,
+                label = if (isFlashOn) "Flash On" else "Flash Off",
+                isActive = isFlashOn,
+                onClick = onToggleFlash
+            )
+            
+            // Gallery picker button
+            ScannerControlButton(
+                icon = Icons.Default.Image,
+                label = "Gallery",
+                isActive = false,
+                onClick = onPickFromGallery
+            )
+        }
+    }
+}
+
+// Control button for scanner screen
+@Composable
+private fun ScannerControlButton(
+    icon: ImageVector,
+    label: String,
+    isActive: Boolean,
+    onClick: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(
+            modifier = Modifier
+                .size(56.dp)
+                .clip(CircleShape)
+                .background(
+                    if (isActive) ScannerFrame.copy(alpha = 0.9f) 
+                    else Color.White.copy(alpha = 0.15f)
+                )
+                .border(
+                    width = 2.dp,
+                    color = if (isActive) ScannerFrame else Color.White.copy(alpha = 0.3f),
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            IconButton(onClick = onClick) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = label,
+                    tint = if (isActive) Color.White else Color.White,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = Color.White,
+            fontWeight = FontWeight.Medium
+        )
     }
 }
 

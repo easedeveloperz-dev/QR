@@ -18,3 +18,4 @@ data class GeneratedQrEntity(
     val isFavorite: Boolean = false
 )
 
+

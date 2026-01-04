@@ -616,3 +616,4 @@ private fun formatTimestampFull(timestamp: Long): String {
     return SimpleDateFormat("MMM d, yyyy 'at' h:mm a", Locale.getDefault()).format(Date(timestamp))
 }
 
+
