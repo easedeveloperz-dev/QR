@@ -21,6 +21,39 @@ sealed class Screen(val route: String) {
 }
 
 /**
+ * Safe navigation extension to prevent multiple clicks causing issues
+ */
+private fun NavHostController.safeNavigateBack() {
+    if (currentBackStackEntry != null && previousBackStackEntry != null) {
+        popBackStack()
+    }
+}
+
+/**
+ * Safe navigation to home - clears back stack and goes to home
+ */
+private fun NavHostController.safeNavigateToHome() {
+    navigate(Screen.Home.route) {
+        popUpTo(Screen.Home.route) {
+            inclusive = true
+        }
+        launchSingleTop = true
+    }
+}
+
+/**
+ * Safe navigation to a screen - prevents duplicate entries
+ */
+private fun NavHostController.safeNavigate(route: String) {
+    val currentRoute = currentBackStackEntry?.destination?.route
+    if (currentRoute != route) {
+        navigate(route) {
+            launchSingleTop = true
+        }
+    }
+}
+
+/**
  * Main navigation graph for the QR app
  */
 @Composable
@@ -35,13 +68,13 @@ fun QrNavGraph(
         composable(Screen.Home.route) {
             HomeScreen(
                 onNavigateToScanner = {
-                    navController.navigate(Screen.Scanner.route)
+                    navController.safeNavigate(Screen.Scanner.route)
                 },
                 onNavigateToGenerator = {
-                    navController.navigate(Screen.Generator.route)
+                    navController.safeNavigate(Screen.Generator.route)
                 },
                 onNavigateToHistory = {
-                    navController.navigate(Screen.History.route)
+                    navController.safeNavigate(Screen.History.route)
                 }
             )
         }
@@ -49,7 +82,7 @@ fun QrNavGraph(
         composable(Screen.Scanner.route) {
             ScannerScreen(
                 onNavigateBack = {
-                    navController.popBackStack()
+                    navController.safeNavigateToHome()
                 }
             )
         }
@@ -57,7 +90,7 @@ fun QrNavGraph(
         composable(Screen.Generator.route) {
             GeneratorScreen(
                 onNavigateBack = {
-                    navController.popBackStack()
+                    navController.safeNavigateToHome()
                 }
             )
         }
@@ -65,7 +98,7 @@ fun QrNavGraph(
         composable(Screen.History.route) {
             HistoryScreen(
                 onNavigateBack = {
-                    navController.popBackStack()
+                    navController.safeNavigateToHome()
                 }
             )
         }

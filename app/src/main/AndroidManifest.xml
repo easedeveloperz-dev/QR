@@ -5,6 +5,11 @@
     <!-- Camera permission for QR scanning -->
     <uses-permission android:name="android.permission.CAMERA" />
     
+    <!-- Declare that app does NOT use advertising ID (no ads in app) -->
+    <uses-permission
+        android:name="com.google.android.gms.permission.AD_ID"
+        tools:node="remove" />
+    
     <!-- Camera feature declaration -->
     <uses-feature 
         android:name="android.hardware.camera" 

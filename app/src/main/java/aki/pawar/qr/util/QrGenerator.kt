@@ -82,3 +82,4 @@ class QrGenerator @Inject constructor() {
 }
 
 
+

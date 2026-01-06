@@ -9,6 +9,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.Arrangement
@@ -46,6 +47,7 @@ import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -167,6 +169,7 @@ fun GeneratorScreen(
                         onSave = { viewModel.onEvent(GeneratorEvent.Save) },
                         onShare = { viewModel.onEvent(GeneratorEvent.Share) },
                         onCreateNew = { viewModel.onEvent(GeneratorEvent.ClearType) },
+                        onGoHome = onNavigateBack,
                         modifier = Modifier.padding(padding)
                     )
                 }
@@ -897,6 +900,7 @@ private fun QrPreviewScreen(
     onSave: () -> Unit,
     onShare: () -> Unit,
     onCreateNew: () -> Unit,
+    onGoHome: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val gradientColors = state.selectedType?.let { getGradientForType(it) } 
@@ -1070,6 +1074,55 @@ private fun QrPreviewScreen(
                 "Create Another QR Code",
                 fontWeight = FontWeight.Medium
             )
+        }
+        
+        Spacer(modifier = Modifier.height(12.dp))
+        
+        // Go to Home button with theme gradient
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp)
+                .background(
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f)
+                        )
+                    ),
+                    shape = RoundedCornerShape(14.dp)
+                )
+                .border(
+                    width = 1.dp,
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f)
+                        )
+                    ),
+                    shape = RoundedCornerShape(14.dp)
+                )
+                .clip(RoundedCornerShape(14.dp))
+                .clickable(onClick = onGoHome),
+            contentAlignment = Alignment.Center
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Home,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    "Go to Home",
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
         }
         
         Spacer(modifier = Modifier.height(24.dp))
