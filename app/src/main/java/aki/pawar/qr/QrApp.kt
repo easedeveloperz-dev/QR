@@ -8,7 +8,13 @@ import dagger.hilt.android.HiltAndroidApp
  * Annotated with @HiltAndroidApp for Hilt dependency injection
  */
 @HiltAndroidApp
-class QrApp : Application()
+class QrApp : Application(){
+    override fun onCreate() {
+        super.onCreate()
+
+    }
+}
+
 
 
 

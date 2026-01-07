@@ -57,3 +57,4 @@ class ScanHistoryRepository @Inject constructor(
 
 
 
+

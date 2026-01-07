@@ -8,8 +8,8 @@ import aki.pawar.qr.domain.model.QrType
 import aki.pawar.qr.domain.model.QrTypeOption
 import aki.pawar.qr.domain.model.SocialPlatform
 import aki.pawar.qr.domain.model.WifiSecurity
-import aki.pawar.qr.util.AnalyticsManager
 import aki.pawar.qr.util.BitmapUtils
+import aki.pawar.qr.util.InAppReviewManager
 import aki.pawar.qr.util.QrGenerator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -114,16 +114,11 @@ class GeneratorViewModel @Inject constructor(
     private val qrGenerator: QrGenerator,
     private val bitmapUtils: BitmapUtils,
     private val generatedQrRepository: GeneratedQrRepository,
-    private val analyticsManager: AnalyticsManager
+    private val inAppReviewManager: InAppReviewManager
 ) : ViewModel() {
     
     private val _state = MutableStateFlow(GeneratorState())
     val state: StateFlow<GeneratorState> = _state.asStateFlow()
-    
-    init {
-        // Log screen view when ViewModel is created
-        analyticsManager.logScreenView("Generator")
-    }
     
     fun onEvent(event: GeneratorEvent) {
         when (event) {
@@ -169,7 +164,6 @@ class GeneratorViewModel @Inject constructor(
     }
     
     private fun selectType(type: QrTypeOption) {
-        analyticsManager.logQrTypeSelected(type.name)
         _state.update { it.copy(selectedType = type, generatedBitmap = null) }
     }
     
@@ -195,15 +189,15 @@ class GeneratorViewModel @Inject constructor(
                 val bitmap = qrGenerator.generate(qrContent, size = 512)
                 
                 if (bitmap != null) {
-                    // Log successful QR generation
-                    analyticsManager.logQrGenerated(selectedType.name)
-                    
                     // Save to history
                     generatedQrRepository.saveGenerated(
                         qrType = selectedType.name,
                         qrContent = qrContent,
                         displayLabel = displayLabel
                     )
+                    
+                    // Record successful action for In-App Review
+                    inAppReviewManager.recordSuccessfulAction()
                     
                     _state.update { 
                         it.copy(
@@ -292,16 +286,11 @@ class GeneratorViewModel @Inject constructor(
     
     private fun save() {
         val bitmap = _state.value.generatedBitmap ?: return
-        val selectedType = _state.value.selectedType?.name ?: "UNKNOWN"
         
         viewModelScope.launch {
             _state.update { it.copy(isSaving = true) }
             
             val success = bitmapUtils.saveToGallery(bitmap)
-            
-            if (success) {
-                analyticsManager.logQrSaved(selectedType)
-            }
             
             _state.update { 
                 it.copy(
@@ -316,12 +305,10 @@ class GeneratorViewModel @Inject constructor(
     
     private fun share() {
         val bitmap = _state.value.generatedBitmap ?: return
-        val selectedType = _state.value.selectedType?.name ?: "UNKNOWN"
         
         viewModelScope.launch {
             _state.update { it.copy(isSharing = true) }
             
-            analyticsManager.logQrShared(selectedType)
             bitmapUtils.shareBitmap(bitmap)
             
             _state.update { it.copy(isSharing = false) }

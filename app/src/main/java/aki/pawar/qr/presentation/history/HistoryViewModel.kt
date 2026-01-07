@@ -7,7 +7,6 @@ import aki.pawar.qr.data.local.entity.GeneratedQrEntity
 import aki.pawar.qr.data.local.entity.ScanHistoryEntity
 import aki.pawar.qr.data.repository.GeneratedQrRepository
 import aki.pawar.qr.data.repository.ScanHistoryRepository
-import aki.pawar.qr.util.AnalyticsManager
 import aki.pawar.qr.util.IntentHandler
 import aki.pawar.qr.util.QrGenerator
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -67,16 +66,13 @@ class HistoryViewModel @Inject constructor(
     private val scanHistoryRepository: ScanHistoryRepository,
     private val generatedQrRepository: GeneratedQrRepository,
     private val intentHandler: IntentHandler,
-    private val qrGenerator: QrGenerator,
-    private val analyticsManager: AnalyticsManager
+    private val qrGenerator: QrGenerator
 ) : ViewModel() {
     
     private val _state = MutableStateFlow(HistoryState())
     val state: StateFlow<HistoryState> = _state.asStateFlow()
     
     init {
-        analyticsManager.logScreenView("History")
-        analyticsManager.logHistoryViewed()
         loadHistory()
     }
     
@@ -158,13 +154,11 @@ class HistoryViewModel @Inject constructor(
     }
     
     private fun selectScanItem(item: ScanHistoryEntity) {
-        analyticsManager.logHistoryItemClicked("scanned")
         _state.update { it.copy(selectedItem = item, regeneratedBitmap = null) }
         regenerateQr(item.rawValue)
     }
     
     private fun selectGeneratedItem(item: GeneratedQrEntity) {
-        analyticsManager.logHistoryItemClicked("generated")
         _state.update { it.copy(selectedItem = item, regeneratedBitmap = null) }
         regenerateQr(item.qrContent)
     }
@@ -174,7 +168,6 @@ class HistoryViewModel @Inject constructor(
     }
     
     private fun deleteScan(id: Long) {
-        analyticsManager.logHistoryItemDeleted("scanned")
         viewModelScope.launch {
             scanHistoryRepository.deleteScanById(id)
             if ((_state.value.selectedItem as? ScanHistoryEntity)?.id == id) {
@@ -184,7 +177,6 @@ class HistoryViewModel @Inject constructor(
     }
     
     private fun deleteGenerated(id: Long) {
-        analyticsManager.logHistoryItemDeleted("generated")
         viewModelScope.launch {
             generatedQrRepository.deleteGeneratedById(id)
             if ((_state.value.selectedItem as? GeneratedQrEntity)?.id == id) {

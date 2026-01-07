@@ -71,6 +71,12 @@
 -dontwarn com.google.firebase.**
 
 # ==========================================
+# GOOGLE PLAY CORE (In-App Review)
+# ==========================================
+-keep class com.google.android.play.core.** { *; }
+-dontwarn com.google.android.play.core.**
+
+# ==========================================
 # COMPOSE - Remove unused
 # ==========================================
 -dontwarn androidx.compose.material.icons.**
