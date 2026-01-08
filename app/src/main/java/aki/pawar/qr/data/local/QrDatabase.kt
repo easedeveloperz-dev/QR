@@ -33,3 +33,5 @@ abstract class QrDatabase : RoomDatabase() {
 
 
 
+
+

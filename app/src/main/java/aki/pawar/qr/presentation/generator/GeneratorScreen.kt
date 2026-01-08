@@ -238,12 +238,12 @@ private fun TypeSelectionScreen(
             Spacer(modifier = Modifier.width(12.dp))
             Column {
                 Text(
-                    text = "Create QR Code",
+                    text = "Select QR Type",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Select the type of QR code you want to create",
+                    text = "Choose what you want to encode",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -1078,31 +1078,21 @@ private fun QrPreviewScreen(
         
         Spacer(modifier = Modifier.height(12.dp))
         
-        // Go to Home button with theme gradient
+        // Go to Home button - prominent gradient design
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(52.dp)
+                .height(56.dp)
                 .background(
                     brush = Brush.linearGradient(
                         colors = listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f)
+                            Color(0xFF667eea),
+                            Color(0xFF764ba2)
                         )
                     ),
-                    shape = RoundedCornerShape(14.dp)
+                    shape = RoundedCornerShape(16.dp)
                 )
-                .border(
-                    width = 1.dp,
-                    brush = Brush.linearGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
-                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f)
-                        )
-                    ),
-                    shape = RoundedCornerShape(14.dp)
-                )
-                .clip(RoundedCornerShape(14.dp))
+                .clip(RoundedCornerShape(16.dp))
                 .clickable(onClick = onGoHome),
             contentAlignment = Alignment.Center
         ) {
@@ -1113,14 +1103,15 @@ private fun QrPreviewScreen(
                 Icon(
                     imageVector = Icons.Default.Home,
                     contentDescription = null,
-                    modifier = Modifier.size(20.dp),
-                    tint = MaterialTheme.colorScheme.primary
+                    modifier = Modifier.size(24.dp),
+                    tint = Color.White
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(10.dp))
                 Text(
                     "Go to Home",
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
                 )
             }
         }

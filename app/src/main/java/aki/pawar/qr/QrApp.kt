@@ -18,3 +18,5 @@ class QrApp : Application(){
 
 
 
+
+
