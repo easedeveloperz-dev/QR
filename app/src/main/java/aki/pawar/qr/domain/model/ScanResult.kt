@@ -175,3 +175,4 @@ enum class BarcodeContentType(val displayName: String) {
 
 
 
+
