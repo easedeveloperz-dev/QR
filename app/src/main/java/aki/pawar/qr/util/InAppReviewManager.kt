@@ -14,7 +14,9 @@ import javax.inject.Singleton
 
 /**
  * Manager for Google Play In-App Review
- * Shows review dialog when:
+ * Shows a choice dialog first, then launches Play review only if user taps YES
+ * 
+ * Conditions to show:
  * 1. User has performed at least 3 successful actions (scans + generates)
  * 2. At least 2 days have passed since first app open
  * 3. Review prompt has not been shown before
@@ -25,9 +27,9 @@ class InAppReviewManager @Inject constructor(
 ) {
     private val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     
-    // Flow to trigger review in UI layer
-    private val _shouldShowReview = MutableStateFlow(false)
-    val shouldShowReview: StateFlow<Boolean> = _shouldShowReview.asStateFlow()
+    // Flow to trigger the choice dialog in UI layer
+    private val _shouldShowChoiceDialog = MutableStateFlow(false)
+    val shouldShowChoiceDialog: StateFlow<Boolean> = _shouldShowChoiceDialog.asStateFlow()
     
     init {
         // Record first open time if not already set
@@ -69,7 +71,7 @@ class InAppReviewManager @Inject constructor(
     
     /**
      * Record a successful action (scan or generate)
-     * Triggers review dialog when all conditions are met
+     * Shows choice dialog when all conditions are met
      */
     fun recordSuccessfulAction() {
         // Don't count if already shown
@@ -79,22 +81,36 @@ class InAppReviewManager @Inject constructor(
         val newCount = currentCount + 1
         saveActionCount(newCount)
         
-        // Check if all conditions are met to show review
+        // Check if all conditions are met to show choice dialog
         if (shouldTriggerReview()) {
-            _shouldShowReview.value = true
+            _shouldShowChoiceDialog.value = true
         }
     }
     
     /**
-     * Launch the In-App Review flow
-     * Call this from an Activity when shouldShowReview is true
+     * Called when user taps YES on the choice dialog
+     * Opens Google Play in-app review
      */
-    fun launchReviewFlow(activity: Activity) {
-        if (hasShownReview()) {
-            _shouldShowReview.value = false
-            return
-        }
-        
+    fun onUserTappedYes(activity: Activity) {
+        _shouldShowChoiceDialog.value = false
+        launchPlayReview(activity)
+    }
+    
+    /**
+     * Called when user taps NO on the choice dialog
+     * Does nothing, just dismisses the dialog
+     */
+    fun onUserTappedNo() {
+        _shouldShowChoiceDialog.value = false
+        // Mark as shown so we don't ask again
+        markReviewShown()
+    }
+    
+    /**
+     * Launch the Google Play In-App Review flow
+     * Called internally when user taps YES
+     */
+    private fun launchPlayReview(activity: Activity) {
         val reviewManager = ReviewManagerFactory.create(context)
         val requestFlow = reviewManager.requestReviewFlow()
         
@@ -107,20 +123,16 @@ class InAppReviewManager @Inject constructor(
                     // Mark as shown regardless of whether user reviewed
                     // Google doesn't tell us if they actually reviewed
                     markReviewShown()
-                    _shouldShowReview.value = false
                 }
-            } else {
-                // Failed to get review info, reset and try later
-                _shouldShowReview.value = false
             }
         }
     }
     
     /**
-     * Reset the review trigger after it's been handled
+     * Reset the choice dialog trigger
      */
-    fun resetReviewTrigger() {
-        _shouldShowReview.value = false
+    fun resetChoiceDialog() {
+        _shouldShowChoiceDialog.value = false
     }
     
     /**
