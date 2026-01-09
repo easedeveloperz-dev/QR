@@ -174,11 +174,8 @@ class ScannerViewModel @Inject constructor(
                         }
                     }
                     result.isUrl -> {
-                        showWarning(
-                            "Open URL?\n\n${result.rawValue}"
-                        ) {
-                            intentHandler.openUrl(result.rawValue)
-                        }
+                        // Open URL directly without warning popup
+                        intentHandler.openUrl(result.rawValue)
                     }
                     else -> {
                         intentHandler.handleScanResult(result.rawValue)
