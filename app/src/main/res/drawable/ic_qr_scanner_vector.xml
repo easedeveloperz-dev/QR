@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+    
+    <!-- Background circle -->
+    <path
+        android:fillColor="#1A1A2E"
+        android:pathData="M60,60m-55,0a55,55 0,1 1,110 0a55,55 0,1 1,-110 0"/>
+    
+    <!-- QR Frame corners -->
+    <!-- Top-left corner -->
+    <path
+        android:fillColor="#4ECDC4"
+        android:pathData="M25,25h20v4h-16v16h-4z"/>
+    
+    <!-- Top-right corner -->
+    <path
+        android:fillColor="#4ECDC4"
+        android:pathData="M95,25v20h-4v-16h-16v-4z"/>
+    
+    <!-- Bottom-left corner -->
+    <path
+        android:fillColor="#4ECDC4"
+        android:pathData="M25,95v-20h4v16h16v4z"/>
+    
+    <!-- Bottom-right corner -->
+    <path
+        android:fillColor="#4ECDC4"
+        android:pathData="M95,95h-20v-4h16v-16h4z"/>
+    
+    <!-- QR Pattern - Position markers (smaller) -->
+    <!-- Top-left marker -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M32,32h14v14h-14z"/>
+    <path
+        android:fillColor="#1A1A2E"
+        android:pathData="M35,35h8v8h-8z"/>
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M37,37h4v4h-4z"/>
+    
+    <!-- Top-right marker -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M74,32h14v14h-14z"/>
+    <path
+        android:fillColor="#1A1A2E"
+        android:pathData="M77,35h8v8h-8z"/>
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M79,37h4v4h-4z"/>
+    
+    <!-- Bottom-left marker -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M32,74h14v14h-14z"/>
+    <path
+        android:fillColor="#1A1A2E"
+        android:pathData="M35,77h8v8h-8z"/>
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M37,79h4v4h-4z"/>
+    
+    <!-- Data dots -->
+    <path
+        android:fillColor="#4ECDC4"
+        android:pathData="M50,32h4v4h-4z"/>
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M58,32h4v4h-4z"/>
+    <path
+        android:fillColor="#4ECDC4"
+        android:pathData="M66,32h4v4h-4z"/>
+    
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M32,50h4v4h-4z"/>
+    <path
+        android:fillColor="#4ECDC4"
+        android:pathData="M40,50h4v4h-4z"/>
+    
+    <!-- Center pulse element -->
+    <group android:name="pulse_center">
+        <path
+            android:fillColor="#4ECDC4"
+            android:pathData="M54,54h12v12h-12z"/>
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M57,57h6v6h-6z"/>
+    </group>
+    
+    <path
+        android:fillColor="#4ECDC4"
+        android:pathData="M76,50h4v4h-4z"/>
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M84,50h4v4h-4z"/>
+    
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M50,84h4v4h-4z"/>
+    <path
+        android:fillColor="#4ECDC4"
+        android:pathData="M58,84h4v4h-4z"/>
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M66,84h4v4h-4z"/>
+    
+    <path
+        android:fillColor="#4ECDC4"
+        android:pathData="M76,76h4v4h-4z"/>
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M84,76h4v4h-4z"/>
+    
+    <!-- Scanning line -->
+    <group android:name="scan_line">
+        <path
+            android:fillColor="#4ECDC4"
+            android:pathData="M30,45h60v2h-60z"
+            android:strokeWidth="0"
+            android:fillAlpha="0.8"/>
+    </group>
+    
+</vector>
+
+
+
+
+
+
+
+
+
