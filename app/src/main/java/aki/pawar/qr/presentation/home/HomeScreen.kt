@@ -181,10 +181,10 @@ fun HomeScreen(
                         Spacer(modifier = Modifier.height(20.dp))
                         
                         Text(
-                            text = "QR Code Pro",
+                            text = "QR Scanner & Generator",
                             style = MaterialTheme.typography.headlineLarge.copy(
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 32.sp
+                                fontSize = 28.sp
                             ),
                             color = MaterialTheme.colorScheme.onBackground
                         )
