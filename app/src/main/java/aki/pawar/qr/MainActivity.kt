@@ -54,7 +54,7 @@ class MainActivity : ComponentActivity() {
                         },
                         title = {
                             Text(
-                                text = "Enjoying the App?",
+                                text = "Enjoying the app ?",
                                 fontWeight = FontWeight.Bold
                             )
                         },

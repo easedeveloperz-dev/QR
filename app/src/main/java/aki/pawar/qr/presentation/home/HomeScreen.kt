@@ -156,9 +156,10 @@ fun HomeScreen(
                         initialOffsetY = { -50 },
                         animationSpec = tween(600)
                     )
+
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        // App Logo/Icon
+
                         Box(
                             modifier = Modifier
                                 .size(80.dp)
