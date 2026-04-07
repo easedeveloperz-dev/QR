@@ -28,6 +28,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -48,6 +49,8 @@ import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -92,6 +95,10 @@ import aki.pawar.qr.domain.model.QrTypeOption
 import aki.pawar.qr.domain.model.SocialPlatform
 import androidx.compose.ui.tooling.preview.Preview
 import aki.pawar.qr.domain.model.WifiSecurity
+import aki.pawar.qr.presentation.components.ColorPickerSheet
+import aki.pawar.qr.presentation.components.FrameSelector
+import aki.pawar.qr.presentation.components.LogoPicker
+import aki.pawar.qr.presentation.components.ShapeSelector
 import androidx.compose.material.icons.filled.QrCode
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -117,24 +124,50 @@ fun GeneratorScreen(
         }
     }
     
+    // Color picker sheet
+    if (state.showColorPicker) {
+        ColorPickerSheet(
+            currentColor = if (state.isPickingForeground) {
+                state.customization.foregroundColor
+            } else {
+                state.customization.backgroundColor
+            },
+            isForeground = state.isPickingForeground,
+            onColorSelected = { color ->
+                if (state.isPickingForeground) {
+                    viewModel.onEvent(GeneratorEvent.UpdateForegroundColor(color))
+                } else {
+                    viewModel.onEvent(GeneratorEvent.UpdateBackgroundColor(color))
+                }
+            },
+            onDismiss = { viewModel.onEvent(GeneratorEvent.HideColorPicker) }
+        )
+    }
+    
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { 
                     Text(
-                        when {
-                            state.generatedBitmap != null -> "Generated QR Code"
-                            state.selectedType != null -> state.selectedType!!.displayName
-                            else -> "Create QR Code"
+                        when (state.currentStep) {
+                            GeneratorStep.TYPE_SELECTION -> "Create QR Code"
+                            GeneratorStep.FORM_INPUT -> state.selectedType?.displayName ?: "Create QR Code"
+                            GeneratorStep.PREVIEW -> if (state.showCustomizationPanel) "Customize QR Code" else "Generated QR Code"
                         }
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = {
-                        when {
-                            state.generatedBitmap != null -> viewModel.onEvent(GeneratorEvent.Reset)
-                            state.selectedType != null -> viewModel.onEvent(GeneratorEvent.ClearType)
-                            else -> onNavigateBack()
+                        when (state.currentStep) {
+                            GeneratorStep.TYPE_SELECTION -> onNavigateBack()
+                            GeneratorStep.FORM_INPUT -> viewModel.onEvent(GeneratorEvent.ClearType)
+                            GeneratorStep.PREVIEW -> {
+                                if (state.showCustomizationPanel) {
+                                    viewModel.onEvent(GeneratorEvent.ToggleCustomization)
+                                } else {
+                                    viewModel.onEvent(GeneratorEvent.BackToForm)
+                                }
+                            }
                         }
                     }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
@@ -145,11 +178,11 @@ fun GeneratorScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         AnimatedContent(
-            targetState = Triple(state.selectedType, state.generatedBitmap != null, state.isGenerating),
+            targetState = state.currentStep,
             label = "generator_content"
-        ) { (selectedType, hasGenerated, isGenerating) ->
+        ) { currentStep ->
             when {
-                isGenerating -> {
+                state.isGenerating -> {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -163,9 +196,23 @@ fun GeneratorScreen(
                         }
                     }
                 }
-                hasGenerated -> {
+                currentStep == GeneratorStep.TYPE_SELECTION -> {
+                    TypeSelectionScreen(
+                        onSelectType = { viewModel.onEvent(GeneratorEvent.SelectType(it)) },
+                        modifier = Modifier.padding(padding)
+                    )
+                }
+                currentStep == GeneratorStep.FORM_INPUT -> {
+                    QrFormScreen(
+                        state = state,
+                        onEvent = viewModel::onEvent,
+                        modifier = Modifier.padding(padding)
+                    )
+                }
+                currentStep == GeneratorStep.PREVIEW -> {
                     QrPreviewScreen(
                         state = state,
+                        onEvent = viewModel::onEvent,
                         onSave = { viewModel.onEvent(GeneratorEvent.Save) },
                         onShare = { viewModel.onEvent(GeneratorEvent.Share) },
                         onCreateNew = { viewModel.onEvent(GeneratorEvent.ClearType) },
@@ -173,19 +220,58 @@ fun GeneratorScreen(
                         modifier = Modifier.padding(padding)
                     )
                 }
-                selectedType != null -> {
-                    QrFormScreen(
-                        state = state,
-                        onEvent = viewModel::onEvent,
-                        modifier = Modifier.padding(padding)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ColorOptionCard(
+    label: String,
+    color: Int,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(Color(color))
+                    .border(
+                        2.dp,
+                        MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                        CircleShape
                     )
-                }
-                else -> {
-                    TypeSelectionScreen(
-                        onSelectType = { viewModel.onEvent(GeneratorEvent.SelectType(it)) },
-                        modifier = Modifier.padding(padding)
-                    )
-                }
+            )
+            
+            Spacer(modifier = Modifier.width(12.dp))
+            
+            Column {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = String.format("#%06X", 0xFFFFFF and color),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
@@ -436,9 +522,6 @@ private fun getGradientForType(type: QrTypeOption): List<Color> {
 private fun getIconForType(type: QrTypeOption): ImageVector {
     return when (type) {
         QrTypeOption.URL -> Icons.Default.Link
-//        QrTypeOption.WIFI -> Icons.Default.Wifi
-//        QrTypeOption.CONTACT -> Icons.Default.Person
-//        QrTypeOption.PHONE -> Icons.Default.Phone
         QrTypeOption.SMS -> Icons.Default.Sms
         QrTypeOption.EMAIL -> Icons.Default.Email
         QrTypeOption.LOCATION -> Icons.Default.LocationOn
@@ -466,9 +549,6 @@ private fun QrFormScreen(
     ) {
         when (selectedType) {
             QrTypeOption.URL -> UrlForm(state, onEvent)
-//            QrTypeOption.WIFI -> WifiForm(state, onEvent)
-//            QrTypeOption.CONTACT -> ContactForm(state, onEvent)
-//            QrTypeOption.PHONE -> PhoneForm(state, onEvent)
             QrTypeOption.SMS -> SmsForm(state, onEvent)
             QrTypeOption.EMAIL -> EmailForm(state, onEvent)
             QrTypeOption.LOCATION -> LocationForm(state, onEvent)
@@ -485,6 +565,12 @@ private fun QrFormScreen(
             modifier = Modifier.fillMaxWidth(),
             enabled = isFormValid(selectedType, state)
         ) {
+            Icon(
+                imageVector = Icons.Default.QrCode,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
             Text("Generate QR Code")
         }
     }
@@ -493,9 +579,6 @@ private fun QrFormScreen(
 private fun isFormValid(type: QrTypeOption, state: GeneratorState): Boolean {
     return when (type) {
         QrTypeOption.URL -> state.urlInput.isNotBlank()
-//        QrTypeOption.WIFI -> state.wifiSsid.isNotBlank()
-//        QrTypeOption.CONTACT -> state.contactFirstName.isNotBlank()
-//        QrTypeOption.PHONE -> state.phoneNumber.isNotBlank()
         QrTypeOption.SMS -> state.smsNumber.isNotBlank()
         QrTypeOption.EMAIL -> state.emailAddress.isNotBlank()
         QrTypeOption.LOCATION -> state.locationLatitude.isNotBlank() && state.locationLongitude.isNotBlank()
@@ -517,150 +600,6 @@ private fun UrlForm(state: GeneratorState, onEvent: (GeneratorEvent) -> Unit) {
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri)
-    )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun WifiForm(state: GeneratorState, onEvent: (GeneratorEvent) -> Unit) {
-    var securityExpanded by remember { mutableStateOf(false) }
-    
-    OutlinedTextField(
-        value = state.wifiSsid,
-        onValueChange = { onEvent(GeneratorEvent.UpdateWifiSsid(it)) },
-        label = { Text("Network Name (SSID) *") },
-        modifier = Modifier.fillMaxWidth(),
-        singleLine = true
-    )
-    
-    Spacer(modifier = Modifier.height(12.dp))
-    
-    OutlinedTextField(
-        value = state.wifiPassword,
-        onValueChange = { onEvent(GeneratorEvent.UpdateWifiPassword(it)) },
-        label = { Text("Password") },
-        modifier = Modifier.fillMaxWidth(),
-        singleLine = true
-    )
-    
-    Spacer(modifier = Modifier.height(12.dp))
-    
-    ExposedDropdownMenuBox(
-        expanded = securityExpanded,
-        onExpandedChange = { securityExpanded = it }
-    ) {
-        OutlinedTextField(
-            value = state.wifiSecurity.displayName,
-            onValueChange = {},
-            readOnly = true,
-            label = { Text("Security Type") },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = securityExpanded) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-        )
-        
-        ExposedDropdownMenu(
-            expanded = securityExpanded,
-            onDismissRequest = { securityExpanded = false }
-        ) {
-            WifiSecurity.entries.forEach { security ->
-                DropdownMenuItem(
-                    text = { Text(security.displayName) },
-                    onClick = {
-                        onEvent(GeneratorEvent.UpdateWifiSecurity(security))
-                        securityExpanded = false
-                    }
-                )
-            }
-        }
-    }
-    
-    Spacer(modifier = Modifier.height(12.dp))
-    
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Checkbox(
-            checked = state.wifiHidden,
-            onCheckedChange = { onEvent(GeneratorEvent.UpdateWifiHidden(it)) }
-        )
-        Text("Hidden Network")
-    }
-}
-
-@Composable
-private fun ContactForm(state: GeneratorState, onEvent: (GeneratorEvent) -> Unit) {
-    OutlinedTextField(
-        value = state.contactFirstName,
-        onValueChange = { onEvent(GeneratorEvent.UpdateContactFirstName(it)) },
-        label = { Text("First Name *") },
-        modifier = Modifier.fillMaxWidth(),
-        singleLine = true
-    )
-    
-    Spacer(modifier = Modifier.height(12.dp))
-    
-    OutlinedTextField(
-        value = state.contactLastName,
-        onValueChange = { onEvent(GeneratorEvent.UpdateContactLastName(it)) },
-        label = { Text("Last Name") },
-        modifier = Modifier.fillMaxWidth(),
-        singleLine = true
-    )
-    
-    Spacer(modifier = Modifier.height(12.dp))
-    
-    OutlinedTextField(
-        value = state.contactPhone,
-        onValueChange = { onEvent(GeneratorEvent.UpdateContactPhone(it)) },
-        label = { Text("Phone") },
-        modifier = Modifier.fillMaxWidth(),
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
-    )
-    
-    Spacer(modifier = Modifier.height(12.dp))
-    
-    OutlinedTextField(
-        value = state.contactEmail,
-        onValueChange = { onEvent(GeneratorEvent.UpdateContactEmail(it)) },
-        label = { Text("Email") },
-        modifier = Modifier.fillMaxWidth(),
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
-    )
-    
-    Spacer(modifier = Modifier.height(12.dp))
-    
-    OutlinedTextField(
-        value = state.contactOrganization,
-        onValueChange = { onEvent(GeneratorEvent.UpdateContactOrganization(it)) },
-        label = { Text("Organization") },
-        modifier = Modifier.fillMaxWidth(),
-        singleLine = true
-    )
-    
-    Spacer(modifier = Modifier.height(12.dp))
-    
-    OutlinedTextField(
-        value = state.contactWebsite,
-        onValueChange = { onEvent(GeneratorEvent.UpdateContactWebsite(it)) },
-        label = { Text("Website") },
-        modifier = Modifier.fillMaxWidth(),
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri)
-    )
-}
-
-@Composable
-private fun PhoneForm(state: GeneratorState, onEvent: (GeneratorEvent) -> Unit) {
-    OutlinedTextField(
-        value = state.phoneNumber,
-        onValueChange = { onEvent(GeneratorEvent.UpdatePhoneNumber(it)) },
-        label = { Text("Phone Number *") },
-        placeholder = { Text("+91 9876543210") },
-        modifier = Modifier.fillMaxWidth(),
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
     )
 }
 
@@ -830,7 +769,7 @@ private fun UpiForm(state: GeneratorState, onEvent: (GeneratorEvent) -> Unit) {
         modifier = Modifier.fillMaxWidth()
     ) {
         Text(
-            text = "⚠️ This only generates a payment QR. Actual payment processing happens in UPI apps like GPay, PhonePe, etc.",
+            text = "This only generates a payment QR. Actual payment processing happens in UPI apps like GPay, PhonePe, etc.",
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.padding(12.dp),
             color = MaterialTheme.colorScheme.onTertiaryContainer
@@ -897,6 +836,7 @@ private fun TextForm(state: GeneratorState, onEvent: (GeneratorEvent) -> Unit) {
 @Composable
 private fun QrPreviewScreen(
     state: GeneratorState,
+    onEvent: (GeneratorEvent) -> Unit,
     onSave: () -> Unit,
     onShare: () -> Unit,
     onCreateNew: () -> Unit,
@@ -913,211 +853,404 @@ private fun QrPreviewScreen(
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Success badge
-        Box(
-            modifier = Modifier
-                .background(
-                    color = Color(0xFF00E676).copy(alpha = 0.1f),
-                    shape = RoundedCornerShape(20.dp)
+        // Show customization panel or QR preview
+        if (state.showCustomizationPanel) {
+            // Customization Panel
+            CustomizationPanel(
+                state = state,
+                onEvent = onEvent
+            )
+        } else {
+            // Success badge
+            Box(
+                modifier = Modifier
+                    .background(
+                        color = Color(0xFF00E676).copy(alpha = 0.1f),
+                        shape = RoundedCornerShape(20.dp)
+                    )
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = null,
+                        tint = Color(0xFF00E676),
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "QR Code Generated!",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = Color(0xFF00E676),
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            // QR Code display with gradient border
+            Box(
+                modifier = Modifier
+                    .size(280.dp)
+                    .background(
+                        brush = Brush.linearGradient(gradientColors),
+                        shape = RoundedCornerShape(24.dp)
+                    )
+                    .padding(4.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            color = Color(state.customization.backgroundColor),
+                            shape = RoundedCornerShape(20.dp)
+                        )
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (state.isApplyingCustomization) {
+                        CircularProgressIndicator(modifier = Modifier.size(32.dp))
+                    } else {
+                        state.generatedBitmap?.let { bitmap ->
+                            Image(
+                                bitmap = bitmap.asImageBitmap(),
+                                contentDescription = "Generated QR Code",
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            // Type badge
+            if (state.selectedType != null) {
+                Box(
+                    modifier = Modifier
+                        .background(
+                            brush = Brush.linearGradient(
+                                gradientColors.map { it.copy(alpha = 0.15f) }
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    Text(
+                        text = state.selectedType.displayName,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = gradientColors[0],
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+            
+            Text(
+                text = state.displayLabel,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 2
+            )
+            
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            // Customize button
+            OutlinedButton(
+                onClick = { onEvent(GeneratorEvent.ToggleCustomization) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape = RoundedCornerShape(14.dp),
+                border = androidx.compose.foundation.BorderStroke(
+                    2.dp,
+                    Brush.linearGradient(gradientColors)
                 )
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            ) {
                 Icon(
-                    imageVector = Icons.Default.Check,
+                    imageVector = Icons.Default.Palette,
                     contentDescription = null,
-                    tint = Color(0xFF00E676),
-                    modifier = Modifier.size(18.dp)
+                    tint = gradientColors[0],
+                    modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "QR Code Generated!",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = Color(0xFF00E676),
-                    fontWeight = FontWeight.SemiBold
+                    "Customize QR Code",
+                    fontWeight = FontWeight.SemiBold,
+                    color = gradientColors[0]
                 )
             }
-        }
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        // QR Code display with gradient border
-        Box(
-            modifier = Modifier
-                .size(280.dp)
-                .background(
-                    brush = Brush.linearGradient(gradientColors),
-                    shape = RoundedCornerShape(24.dp)
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Action buttons with gradient
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Save button
+                Button(
+                    onClick = onSave,
+                    enabled = !state.isSaving && !state.isApplyingCustomization,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    if (state.isSaving) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Icon(Icons.Default.Download, null, modifier = Modifier.size(22.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Save", fontWeight = FontWeight.SemiBold)
+                    }
+                }
+                
+                // Share button
+                Button(
+                    onClick = onShare,
+                    enabled = !state.isSharing && !state.isApplyingCustomization,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    if (state.isSharing) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Icon(Icons.Default.Share, null, modifier = Modifier.size(22.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Share", fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            OutlinedButton(
+                onClick = onCreateNew,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape = RoundedCornerShape(14.dp),
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp, 
+                    MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
                 )
-                .padding(4.dp)
-        ) {
+            ) {
+                Text(
+                    "Create Another QR Code",
+                    fontWeight = FontWeight.Medium
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            // Go to Home button - prominent gradient design
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .fillMaxWidth()
+                    .height(56.dp)
                     .background(
-                        color = Color.White,
-                        shape = RoundedCornerShape(20.dp)
+                        brush = Brush.linearGradient(
+                            colors = listOf(
+                                Color(0xFF667eea),
+                                Color(0xFF764ba2)
+                            )
+                        ),
+                        shape = RoundedCornerShape(16.dp)
                     )
-                    .padding(20.dp),
+                    .clip(RoundedCornerShape(16.dp))
+                    .clickable(onClick = onGoHome),
                 contentAlignment = Alignment.Center
             ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Home,
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp),
+                        tint = Color.White
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        "Go to Home",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+    }
+}
+
+@Composable
+private fun CustomizationPanel(
+    state: GeneratorState,
+    onEvent: (GeneratorEvent) -> Unit
+) {
+    // QR Preview with customization
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(200.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .size(180.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .border(
+                    2.dp,
+                    MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                    RoundedCornerShape(16.dp)
+                )
+                .background(Color(state.customization.backgroundColor))
+                .padding(8.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            if (state.isApplyingCustomization) {
+                CircularProgressIndicator(modifier = Modifier.size(32.dp))
+            } else {
                 state.generatedBitmap?.let { bitmap ->
                     Image(
                         bitmap = bitmap.asImageBitmap(),
-                        contentDescription = "Generated QR Code",
+                        contentDescription = "QR Preview",
                         modifier = Modifier.fillMaxSize()
                     )
                 }
             }
         }
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        // Type badge
-        if (state.selectedType != null) {
-            Box(
-                modifier = Modifier
-                    .background(
-                        brush = Brush.linearGradient(
-                            gradientColors.map { it.copy(alpha = 0.15f) }
-                        ),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-            ) {
-                Text(
-                    text = state.selectedType.displayName,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = gradientColors[0],
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(12.dp))
-        }
-        
-        Text(
-            text = state.displayLabel,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Medium,
-            textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 2
-        )
-        
-        Spacer(modifier = Modifier.height(32.dp))
-        
-        // Action buttons with gradient
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // Save button
-            Button(
-                onClick = onSave,
-                enabled = !state.isSaving,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(56.dp),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                if (state.isSaving) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = Color.White,
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Icon(Icons.Default.Download, null, modifier = Modifier.size(22.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Save", fontWeight = FontWeight.SemiBold)
-                }
-            }
-            
-            // Share button
-            Button(
-                onClick = onShare,
-                enabled = !state.isSharing,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(56.dp),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                if (state.isSharing) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = Color.White,
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Icon(Icons.Default.Share, null, modifier = Modifier.size(22.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Share", fontWeight = FontWeight.SemiBold)
-                }
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        OutlinedButton(
-            onClick = onCreateNew,
+    }
+    
+    // Contrast warning
+    AnimatedVisibility(visible = state.showContrastWarning) {
+        Card(
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.errorContainer
+            ),
             modifier = Modifier
                 .fillMaxWidth()
-                .height(52.dp),
-            shape = RoundedCornerShape(14.dp),
-            border = androidx.compose.foundation.BorderStroke(
-                1.dp, 
-                MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-            )
-        ) {
-            Text(
-                "Create Another QR Code",
-                fontWeight = FontWeight.Medium
-            )
-        }
-        
-        Spacer(modifier = Modifier.height(12.dp))
-        
-        // Go to Home button - prominent gradient design
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp)
-                .background(
-                    brush = Brush.linearGradient(
-                        colors = listOf(
-                            Color(0xFF667eea),
-                            Color(0xFF764ba2)
-                        )
-                    ),
-                    shape = RoundedCornerShape(16.dp)
-                )
-                .clip(RoundedCornerShape(16.dp))
-                .clickable(onClick = onGoHome),
-            contentAlignment = Alignment.Center
+                .padding(bottom = 16.dp)
         ) {
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
+                modifier = Modifier.padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    imageVector = Icons.Default.Home,
+                    imageVector = Icons.Default.Warning,
                     contentDescription = null,
-                    modifier = Modifier.size(24.dp),
-                    tint = Color.White
+                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                    modifier = Modifier.size(20.dp)
                 )
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    "Go to Home",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    text = "Low contrast may affect scannability",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onErrorContainer
                 )
             }
         }
-        
-        Spacer(modifier = Modifier.height(24.dp))
     }
+    
+    // Colors section
+    Text(
+        text = "Colors",
+        style = MaterialTheme.typography.titleSmall,
+        fontWeight = FontWeight.SemiBold,
+        color = MaterialTheme.colorScheme.onSurface
+    )
+    
+    Spacer(modifier = Modifier.height(12.dp))
+    
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // Foreground color
+        ColorOptionCard(
+            label = "QR Color",
+            color = state.customization.foregroundColor,
+            onClick = { onEvent(GeneratorEvent.ShowForegroundColorPicker) },
+            modifier = Modifier.weight(1f)
+        )
+        
+        // Background color
+        ColorOptionCard(
+            label = "Background",
+            color = state.customization.backgroundColor,
+            onClick = { onEvent(GeneratorEvent.ShowBackgroundColorPicker) },
+            modifier = Modifier.weight(1f)
+        )
+    }
+    
+    Spacer(modifier = Modifier.height(24.dp))
+    
+    // Module shape selector
+    ShapeSelector(
+        selectedShape = state.customization.moduleShape,
+        onShapeSelected = { onEvent(GeneratorEvent.UpdateModuleShape(it)) }
+    )
+    
+    Spacer(modifier = Modifier.height(24.dp))
+    
+    // Frame selector
+    FrameSelector(
+        selectedFrame = state.customization.frameStyle,
+        onFrameSelected = { onEvent(GeneratorEvent.UpdateFrameStyle(it)) }
+    )
+    
+    Spacer(modifier = Modifier.height(24.dp))
+    
+    // Logo picker
+    LogoPicker(
+        currentLogo = state.customization.logoBitmap,
+        logoSizePercent = state.customization.logoSizePercent,
+        onLogoSelected = { onEvent(GeneratorEvent.UpdateLogo(it)) },
+        onLogoSizeChanged = { onEvent(GeneratorEvent.UpdateLogoSize(it)) }
+    )
+    
+    Spacer(modifier = Modifier.height(32.dp))
+    
+    // Done button
+    Button(
+        onClick = { onEvent(GeneratorEvent.ToggleCustomization) },
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Icon(
+            imageVector = Icons.Default.Check,
+            contentDescription = null,
+            modifier = Modifier.size(22.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            "Done",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold
+        )
+    }
+    
+    Spacer(modifier = Modifier.height(16.dp))
 }
 
 // ==========================================

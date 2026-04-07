@@ -4,6 +4,9 @@ import android.graphics.Bitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import aki.pawar.qr.data.repository.GeneratedQrRepository
+import aki.pawar.qr.domain.model.FrameStyle
+import aki.pawar.qr.domain.model.ModuleShape
+import aki.pawar.qr.domain.model.QrCustomization
 import aki.pawar.qr.domain.model.QrType
 import aki.pawar.qr.domain.model.QrTypeOption
 import aki.pawar.qr.domain.model.SocialPlatform
@@ -12,6 +15,8 @@ import aki.pawar.qr.util.BitmapUtils
 import aki.pawar.qr.util.InAppReviewManager
 import aki.pawar.qr.util.QrGenerator
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,9 +25,19 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
+ * Screen step in the generator flow
+ */
+enum class GeneratorStep {
+    TYPE_SELECTION,
+    FORM_INPUT,
+    PREVIEW
+}
+
+/**
  * UI State for Generator Screen
  */
 data class GeneratorState(
+    val currentStep: GeneratorStep = GeneratorStep.TYPE_SELECTION,
     val selectedType: QrTypeOption? = null,
     val generatedBitmap: Bitmap? = null,
     val qrContent: String = "",
@@ -33,6 +48,14 @@ data class GeneratorState(
     val showSuccess: Boolean = false,
     val successMessage: String = "",
     val error: String? = null,
+    
+    // Customization (on preview screen)
+    val customization: QrCustomization = QrCustomization(),
+    val showCustomizationPanel: Boolean = false,  // Toggle customization options on preview
+    val showColorPicker: Boolean = false,
+    val isPickingForeground: Boolean = true,  // true = foreground, false = background
+    val showContrastWarning: Boolean = false,
+    val isApplyingCustomization: Boolean = false,
     
     // Form fields for each type
     val urlInput: String = "",
@@ -77,6 +100,20 @@ sealed class GeneratorEvent {
     data object Reset : GeneratorEvent()
     data object ClearError : GeneratorEvent()
     data object DismissSuccess : GeneratorEvent()
+    data object BackToForm : GeneratorEvent()
+    
+    // Customization events (applied on preview screen)
+    data class UpdateForegroundColor(val color: Int) : GeneratorEvent()
+    data class UpdateBackgroundColor(val color: Int) : GeneratorEvent()
+    data class UpdateModuleShape(val shape: ModuleShape) : GeneratorEvent()
+    data class UpdateFrameStyle(val style: FrameStyle) : GeneratorEvent()
+    data class UpdateLogo(val bitmap: Bitmap?) : GeneratorEvent()
+    data class UpdateLogoSize(val percent: Float) : GeneratorEvent()
+    data object ShowForegroundColorPicker : GeneratorEvent()
+    data object ShowBackgroundColorPicker : GeneratorEvent()
+    data object HideColorPicker : GeneratorEvent()
+    data object DismissContrastWarning : GeneratorEvent()
+    data object ToggleCustomization : GeneratorEvent()
     
     // Form input events
     data class UpdateUrl(val value: String) : GeneratorEvent()
@@ -120,6 +157,8 @@ class GeneratorViewModel @Inject constructor(
     private val _state = MutableStateFlow(GeneratorState())
     val state: StateFlow<GeneratorState> = _state.asStateFlow()
     
+    private var regenerateJob: Job? = null
+    
     fun onEvent(event: GeneratorEvent) {
         when (event) {
             is GeneratorEvent.SelectType -> selectType(event.type)
@@ -130,6 +169,26 @@ class GeneratorViewModel @Inject constructor(
             is GeneratorEvent.Reset -> reset()
             is GeneratorEvent.ClearError -> clearError()
             is GeneratorEvent.DismissSuccess -> dismissSuccess()
+            is GeneratorEvent.BackToForm -> backToForm()
+            
+            // Customization events
+            is GeneratorEvent.ToggleCustomization -> _state.update { 
+                it.copy(showCustomizationPanel = !it.showCustomizationPanel) 
+            }
+            is GeneratorEvent.UpdateForegroundColor -> updateForegroundColor(event.color)
+            is GeneratorEvent.UpdateBackgroundColor -> updateBackgroundColor(event.color)
+            is GeneratorEvent.UpdateModuleShape -> updateModuleShape(event.shape)
+            is GeneratorEvent.UpdateFrameStyle -> updateFrameStyle(event.style)
+            is GeneratorEvent.UpdateLogo -> updateLogo(event.bitmap)
+            is GeneratorEvent.UpdateLogoSize -> updateLogoSize(event.percent)
+            is GeneratorEvent.ShowForegroundColorPicker -> _state.update { 
+                it.copy(showColorPicker = true, isPickingForeground = true) 
+            }
+            is GeneratorEvent.ShowBackgroundColorPicker -> _state.update { 
+                it.copy(showColorPicker = true, isPickingForeground = false) 
+            }
+            is GeneratorEvent.HideColorPicker -> _state.update { it.copy(showColorPicker = false) }
+            is GeneratorEvent.DismissContrastWarning -> _state.update { it.copy(showContrastWarning = false) }
             
             // Form updates
             is GeneratorEvent.UpdateUrl -> _state.update { it.copy(urlInput = event.value) }
@@ -164,11 +223,97 @@ class GeneratorViewModel @Inject constructor(
     }
     
     private fun selectType(type: QrTypeOption) {
-        _state.update { it.copy(selectedType = type, generatedBitmap = null) }
+        _state.update { 
+            it.copy(
+                selectedType = type, 
+                currentStep = GeneratorStep.FORM_INPUT,
+                generatedBitmap = null
+            ) 
+        }
     }
     
     private fun clearType() {
         _state.update { GeneratorState() }
+    }
+    
+    private fun backToForm() {
+        _state.update { 
+            it.copy(
+                currentStep = GeneratorStep.FORM_INPUT,
+                generatedBitmap = null,
+                showCustomizationPanel = false,
+                customization = QrCustomization()  // Reset customization
+            ) 
+        }
+    }
+    
+    private fun updateForegroundColor(color: Int) {
+        val newCustomization = _state.value.customization.copy(foregroundColor = color)
+        updateCustomizationAndRegenerate(newCustomization)
+    }
+    
+    private fun updateBackgroundColor(color: Int) {
+        val newCustomization = _state.value.customization.copy(backgroundColor = color)
+        updateCustomizationAndRegenerate(newCustomization)
+    }
+    
+    private fun updateModuleShape(shape: ModuleShape) {
+        val newCustomization = _state.value.customization.copy(moduleShape = shape)
+        updateCustomizationAndRegenerate(newCustomization)
+    }
+    
+    private fun updateFrameStyle(style: FrameStyle) {
+        val newCustomization = _state.value.customization.copy(frameStyle = style)
+        updateCustomizationAndRegenerate(newCustomization)
+    }
+    
+    private fun updateLogo(bitmap: Bitmap?) {
+        val newCustomization = _state.value.customization.copy(logoBitmap = bitmap)
+        updateCustomizationAndRegenerate(newCustomization)
+    }
+    
+    private fun updateLogoSize(percent: Float) {
+        val clampedPercent = percent.coerceIn(
+            QrCustomization.MIN_LOGO_SIZE_PERCENT,
+            QrCustomization.MAX_LOGO_SIZE_PERCENT
+        )
+        val newCustomization = _state.value.customization.copy(logoSizePercent = clampedPercent)
+        updateCustomizationAndRegenerate(newCustomization)
+    }
+    
+    private fun updateCustomizationAndRegenerate(newCustomization: QrCustomization) {
+        val showWarning = !newCustomization.hasAdequateContrast()
+        _state.update { 
+            it.copy(
+                customization = newCustomization,
+                showContrastWarning = showWarning
+            ) 
+        }
+        regenerateWithCustomization()
+    }
+    
+    private fun regenerateWithCustomization() {
+        regenerateJob?.cancel()
+        regenerateJob = viewModelScope.launch {
+            delay(150) // Debounce
+            
+            val currentState = _state.value
+            if (currentState.qrContent.isBlank()) return@launch
+            
+            _state.update { it.copy(isApplyingCustomization = true) }
+            
+            try {
+                val bitmap = qrGenerator.generateCustomized(
+                    content = currentState.qrContent,
+                    size = 512,
+                    customization = currentState.customization
+                )
+                
+                _state.update { it.copy(generatedBitmap = bitmap, isApplyingCustomization = false) }
+            } catch (e: Exception) {
+                _state.update { it.copy(isApplyingCustomization = false) }
+            }
+        }
     }
     
     private fun generate() {
@@ -186,7 +331,12 @@ class GeneratorViewModel @Inject constructor(
                     return@launch
                 }
                 
-                val bitmap = qrGenerator.generate(qrContent, size = 512)
+                // Generate with current customization (default or user-modified)
+                val bitmap = qrGenerator.generateCustomized(
+                    content = qrContent,
+                    size = 512,
+                    customization = currentState.customization
+                )
                 
                 if (bitmap != null) {
                     // Save to history
@@ -202,9 +352,11 @@ class GeneratorViewModel @Inject constructor(
                     _state.update { 
                         it.copy(
                             isGenerating = false,
+                            currentStep = GeneratorStep.PREVIEW,
                             generatedBitmap = bitmap,
                             qrContent = qrContent,
-                            displayLabel = displayLabel
+                            displayLabel = displayLabel,
+                            showCustomizationPanel = false
                         ) 
                     }
                 } else {
@@ -222,30 +374,6 @@ class GeneratorViewModel @Inject constructor(
                 val qrType = QrType.Url(state.urlInput)
                 qrType.toQrString() to state.urlInput
             }
-          /*  QrTypeOption.WIFI -> {
-                val qrType = QrType.WiFi(
-                    ssid = state.wifiSsid,
-                    password = state.wifiPassword,
-                    securityType = state.wifiSecurity,
-                    isHidden = state.wifiHidden
-                )
-                qrType.toQrString() to "Wi-Fi: ${state.wifiSsid}"
-            }
-            QrTypeOption.CONTACT -> {
-                val qrType = QrType.Contact(
-                    firstName = state.contactFirstName,
-                    lastName = state.contactLastName,
-                    phone = state.contactPhone,
-                    email = state.contactEmail,
-                    organization = state.contactOrganization,
-                    website = state.contactWebsite
-                )
-                qrType.toQrString() to "${state.contactFirstName} ${state.contactLastName}".trim()
-            }
-            QrTypeOption.PHONE -> {
-                val qrType = QrType.Phone(state.phoneNumber)
-                qrType.toQrString() to state.phoneNumber
-            }*/
             QrTypeOption.SMS -> {
                 val qrType = QrType.Sms(state.smsNumber, state.smsMessage)
                 qrType.toQrString() to "SMS: ${state.smsNumber}"
@@ -318,9 +446,10 @@ class GeneratorViewModel @Inject constructor(
     private fun reset() {
         _state.update { 
             it.copy(
+                currentStep = GeneratorStep.FORM_INPUT,
                 generatedBitmap = null,
-                qrContent = "",
-                displayLabel = ""
+                showCustomizationPanel = false,
+                customization = QrCustomization()
             )
         }
     }
@@ -333,5 +462,3 @@ class GeneratorViewModel @Inject constructor(
         _state.update { it.copy(showSuccess = false, successMessage = "") }
     }
 }
-
-

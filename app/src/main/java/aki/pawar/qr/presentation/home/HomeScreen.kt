@@ -44,6 +44,7 @@ import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Security
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.WifiOff
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -93,7 +94,8 @@ import kotlinx.coroutines.delay
 fun HomeScreen(
     onNavigateToScanner: () -> Unit,
     onNavigateToGenerator: () -> Unit,
-    onNavigateToHistory: () -> Unit
+    onNavigateToHistory: () -> Unit,
+    onNavigateToSettings: () -> Unit
 ) {
     val isDark = isSystemInDarkTheme()
     var isVisible by remember { mutableStateOf(false) }
@@ -120,7 +122,7 @@ fun HomeScreen(
                         IconButton(
                             onClick = onNavigateToHistory,
                             modifier = Modifier
-                                .padding(8.dp)
+                                .padding(4.dp)
                                 .background(
                                     MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                                     CircleShape
@@ -129,6 +131,21 @@ fun HomeScreen(
                             Icon(
                                 imageVector = Icons.Outlined.History,
                                 contentDescription = "History",
+                                tint = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                        IconButton(
+                            onClick = onNavigateToSettings,
+                            modifier = Modifier
+                                .padding(4.dp)
+                                .background(
+                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                    CircleShape
+                                )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Settings,
+                                contentDescription = "Settings",
                                 tint = MaterialTheme.colorScheme.onSurface
                             )
                         }
@@ -483,7 +500,8 @@ private fun HomeScreenPreviewLight() {
         HomeScreen(
             onNavigateToScanner = {},
             onNavigateToGenerator = {},
-            onNavigateToHistory = {}
+            onNavigateToHistory = {},
+            onNavigateToSettings = {}
         )
     }
 }
@@ -495,7 +513,8 @@ private fun HomeScreenPreviewDark() {
         HomeScreen(
             onNavigateToScanner = {},
             onNavigateToGenerator = {},
-            onNavigateToHistory = {}
+            onNavigateToHistory = {},
+            onNavigateToSettings = {}
         )
     }
 }

@@ -9,6 +9,7 @@ import aki.pawar.qr.presentation.generator.GeneratorScreen
 import aki.pawar.qr.presentation.history.HistoryScreen
 import aki.pawar.qr.presentation.home.HomeScreen
 import aki.pawar.qr.presentation.scanner.ScannerScreen
+import aki.pawar.qr.presentation.settings.SettingsScreen
 
 /**
  * Navigation destinations for the app
@@ -18,6 +19,7 @@ sealed class Screen(val route: String) {
     data object Scanner : Screen("scanner")
     data object Generator : Screen("generator")
     data object History : Screen("history")
+    data object Settings : Screen("settings")
 }
 
 /**
@@ -75,6 +77,9 @@ fun QrNavGraph(
                 },
                 onNavigateToHistory = {
                     navController.safeNavigate(Screen.History.route)
+                },
+                onNavigateToSettings = {
+                    navController.safeNavigate(Screen.Settings.route)
                 }
             )
         }
@@ -97,6 +102,14 @@ fun QrNavGraph(
         
         composable(Screen.History.route) {
             HistoryScreen(
+                onNavigateBack = {
+                    navController.safeNavigateToHome()
+                }
+            )
+        }
+        
+        composable(Screen.Settings.route) {
+            SettingsScreen(
                 onNavigateBack = {
                     navController.safeNavigateToHome()
                 }
