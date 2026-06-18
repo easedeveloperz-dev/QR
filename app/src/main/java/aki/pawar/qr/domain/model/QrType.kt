@@ -237,16 +237,13 @@ sealed class QrType {
          * Returns all available QR types for selection
          */
         fun getAllTypes(): List<QrTypeOption> = listOf(
+            QrTypeOption.UPI,
             QrTypeOption.URL,
-//            QrTypeOption.WIFI,
-//            QrTypeOption.CONTACT,
-//            QrTypeOption.PHONE,
             QrTypeOption.SMS,
             QrTypeOption.EMAIL,
             QrTypeOption.LOCATION,
             QrTypeOption.SOCIAL_MEDIA,
             QrTypeOption.APP_DOWNLOAD,
-            QrTypeOption.UPI,
             QrTypeOption.TEXT
         )
     }
@@ -314,7 +311,7 @@ enum class QrTypeOption(
     LOCATION("Location", "Share GPS coordinates", "location_on"),
     SOCIAL_MEDIA("Social Media", "Share social profile link", "share"),
     APP_DOWNLOAD("App Download", "Play Store app link", "download"),
-    UPI("UPI Payment", "Generate payment QR code", "payment"),
+    UPI("UPI Payment", "Pay via UPI ID or mobile number", "payment"),
 }
 
 

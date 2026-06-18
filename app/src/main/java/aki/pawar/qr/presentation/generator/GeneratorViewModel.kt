@@ -14,6 +14,7 @@ import aki.pawar.qr.domain.model.WifiSecurity
 import aki.pawar.qr.util.BitmapUtils
 import aki.pawar.qr.util.InAppReviewManager
 import aki.pawar.qr.util.QrGenerator
+import aki.pawar.qr.util.UpiPayeeAddress
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -82,6 +83,9 @@ data class GeneratorState(
     val socialUsername: String = "",
     val appPackageName: String = "",
     val upiId: String = "",
+    val upiMobileNumber: String = "",
+    val upiInputMode: UpiPayeeAddress.InputMode = UpiPayeeAddress.InputMode.UPI_ID,
+    val upiMobileSuffix: UpiPayeeAddress.MobileSuffix = UpiPayeeAddress.MobileSuffix.UPI,
     val upiPayeeName: String = "",
     val upiAmount: String = "",
     val upiNote: String = "",
@@ -140,6 +144,9 @@ sealed class GeneratorEvent {
     data class UpdateSocialUsername(val value: String) : GeneratorEvent()
     data class UpdateAppPackageName(val value: String) : GeneratorEvent()
     data class UpdateUpiId(val value: String) : GeneratorEvent()
+    data class UpdateUpiMobileNumber(val value: String) : GeneratorEvent()
+    data class UpdateUpiInputMode(val mode: UpiPayeeAddress.InputMode) : GeneratorEvent()
+    data class UpdateUpiMobileSuffix(val suffix: UpiPayeeAddress.MobileSuffix) : GeneratorEvent()
     data class UpdateUpiPayeeName(val value: String) : GeneratorEvent()
     data class UpdateUpiAmount(val value: String) : GeneratorEvent()
     data class UpdateUpiNote(val value: String) : GeneratorEvent()
@@ -215,6 +222,9 @@ class GeneratorViewModel @Inject constructor(
             is GeneratorEvent.UpdateSocialUsername -> _state.update { it.copy(socialUsername = event.value) }
             is GeneratorEvent.UpdateAppPackageName -> _state.update { it.copy(appPackageName = event.value) }
             is GeneratorEvent.UpdateUpiId -> _state.update { it.copy(upiId = event.value) }
+            is GeneratorEvent.UpdateUpiMobileNumber -> _state.update { it.copy(upiMobileNumber = event.value) }
+            is GeneratorEvent.UpdateUpiInputMode -> _state.update { it.copy(upiInputMode = event.mode) }
+            is GeneratorEvent.UpdateUpiMobileSuffix -> _state.update { it.copy(upiMobileSuffix = event.suffix) }
             is GeneratorEvent.UpdateUpiPayeeName -> _state.update { it.copy(upiPayeeName = event.value) }
             is GeneratorEvent.UpdateUpiAmount -> _state.update { it.copy(upiAmount = event.value) }
             is GeneratorEvent.UpdateUpiNote -> _state.update { it.copy(upiNote = event.value) }
@@ -397,13 +407,27 @@ class GeneratorViewModel @Inject constructor(
                 qrType.toQrString() to state.appPackageName
             }
             QrTypeOption.UPI -> {
-                val qrType = QrType.Upi(
+                val payeeAddress = UpiPayeeAddress.resolve(
+                    mode = state.upiInputMode,
                     upiId = state.upiId,
+                    mobileNumber = state.upiMobileNumber,
+                    mobileSuffix = state.upiMobileSuffix,
+                ) ?: error("Invalid UPI payee details")
+
+                val qrType = QrType.Upi(
+                    upiId = payeeAddress,
                     payeeName = state.upiPayeeName,
                     amount = state.upiAmount,
-                    transactionNote = state.upiNote
+                    transactionNote = state.upiNote,
                 )
-                qrType.toQrString() to "UPI: ${state.upiPayeeName}"
+                val summary = when (state.upiInputMode) {
+                    UpiPayeeAddress.InputMode.MOBILE_NUMBER -> {
+                        val mobile = UpiPayeeAddress.normalizeIndianMobile(state.upiMobileNumber).orEmpty()
+                        "UPI: ${state.upiPayeeName} (+91 $mobile)"
+                    }
+                    UpiPayeeAddress.InputMode.UPI_ID -> "UPI: ${state.upiPayeeName}"
+                }
+                qrType.toQrString() to summary
             }
             QrTypeOption.TEXT -> {
                 val qrType = QrType.Text(state.plainText)

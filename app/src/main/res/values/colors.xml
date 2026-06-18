@@ -5,7 +5,7 @@
     <!-- ========================================== -->
     
     <!-- App Icon Colors -->
-    <color name="ic_launcher_background">#1A1A2E</color>
+    <color name="ic_launcher_background">#000000</color>
     
     <!-- Primary - Vibrant Teal -->
     <color name="primary">#4ECDC4</color>

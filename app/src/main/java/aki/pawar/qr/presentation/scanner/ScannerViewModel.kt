@@ -9,6 +9,7 @@ import aki.pawar.qr.domain.model.BarcodeFormat
 import aki.pawar.qr.domain.model.ScanResult
 import aki.pawar.qr.util.InAppReviewManager
 import aki.pawar.qr.util.IntentHandler
+import aki.pawar.qr.util.UpiPayeeAddress
 import com.google.mlkit.vision.barcode.BarcodeScanner
 import com.google.mlkit.vision.common.InputImage
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -153,10 +154,19 @@ class ScannerViewModel @Inject constructor(
                 when {
                     result.isUpi -> {
                         val upiDetails = result.parseUpiDetails()
+                        val payeeLine = when {
+                            upiDetails == null -> "Unknown"
+                            UpiPayeeAddress.isMobileVpa(upiDetails.upiId) -> {
+                                val mobile = UpiPayeeAddress.formatMobileForDisplay(upiDetails.upiId)
+                                    ?: upiDetails.upiId
+                                "Mobile: $mobile"
+                            }
+                            else -> "UPI ID: ${upiDetails.upiId}"
+                        }
                         showWarning(
                             "Payment QR Code Detected!\n\n" +
                             "Payee: ${upiDetails?.payeeName ?: "Unknown"}\n" +
-                            "UPI ID: ${upiDetails?.upiId ?: "Unknown"}\n" +
+                            "$payeeLine\n" +
                             "Amount: ${upiDetails?.amount?.ifBlank { "Not specified" }}\n\n" +
                             "Do you want to proceed to payment app?"
                         ) {

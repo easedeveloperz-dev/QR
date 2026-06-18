@@ -101,8 +101,15 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import aki.pawar.qr.domain.model.BarcodeContentType
+import aki.pawar.qr.util.UpiPayeeAddress
 import aki.pawar.qr.ui.theme.ScannerFrame
 import aki.pawar.qr.ui.theme.ScannerOverlay
+import aki.pawar.qr.ui.theme.CardShape
+import aki.pawar.qr.presentation.components.DetailInfoRow
+import androidx.compose.material.icons.filled.CurrencyRupee
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Notes
 import androidx.compose.material.icons.filled.QrCodeScanner
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
@@ -660,12 +667,34 @@ private fun ScanResultCard(
             .padding(16.dp)
     ) {
         // Plain text content at the top - prominently displayed
-        Text(
-            text = "Scanned Result",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                        RoundedCornerShape(10.dp),
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.QrCodeScanner,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+            Spacer(modifier = Modifier.width(10.dp))
+            Text(
+                text = "Scanned Result",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
         
         Spacer(modifier = Modifier.height(12.dp))
         
@@ -677,9 +706,15 @@ private fun ScanResultCard(
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier
                     .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
                     .background(
-                        MaterialTheme.colorScheme.surfaceVariant,
-                        RoundedCornerShape(8.dp)
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        RoundedCornerShape(14.dp),
+                    )
+                    .border(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                        shape = RoundedCornerShape(14.dp),
                     )
                     .padding(16.dp)
             )
@@ -724,30 +759,116 @@ private fun ScanResultCard(
         if (result.isUpi) {
             result.parseUpiDetails()?.let { upi ->
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
+                val upiGradient = listOf(Color(0xFF7C3AED), Color(0xFF5B21B6))
+
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(
+                            width = 1.dp,
+                            brush = Brush.linearGradient(
+                                upiGradient.map { it.copy(alpha = 0.4f) },
+                            ),
+                            shape = CardShape,
+                        ),
+                    shape = CardShape,
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.tertiaryContainer
-                    )
+                        containerColor = MaterialTheme.colorScheme.surface,
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "Payment Details",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onTertiaryContainer
-                        )
-                        
-                        Spacer(modifier = Modifier.height(12.dp))
-                        
-                        DetailRow("Payee", upi.payeeName)
-                        DetailRow("UPI ID", upi.upiId)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .background(
+                                        brush = Brush.linearGradient(upiGradient),
+                                        shape = RoundedCornerShape(12.dp),
+                                    ),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CurrencyRupee,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(22.dp),
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = "Payment Details",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                                Text(
+                                    text = "UPI payment QR detected",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+
                         if (upi.amount.isNotBlank()) {
-                            DetailRow("Amount", "₹${upi.amount}")
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(
+                                        brush = Brush.linearGradient(
+                                            upiGradient.map { it.copy(alpha = 0.1f) },
+                                        ),
+                                    )
+                                    .padding(vertical = 16.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    text = "₹${upi.amount}",
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = upiGradient.first(),
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        DetailInfoRow(
+                            label = "Payee",
+                            value = upi.payeeName,
+                            icon = Icons.Default.Person,
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        val mobileDisplay = UpiPayeeAddress.formatMobileForDisplay(upi.upiId)
+                        if (mobileDisplay != null) {
+                            DetailInfoRow(
+                                label = "Mobile",
+                                value = mobileDisplay,
+                                icon = Icons.Default.Phone,
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            DetailInfoRow(
+                                label = "UPI Address",
+                                value = upi.upiId,
+                                icon = Icons.Default.CurrencyRupee,
+                            )
+                        } else {
+                            DetailInfoRow(
+                                label = "UPI ID",
+                                value = upi.upiId,
+                                icon = Icons.Default.CurrencyRupee,
+                            )
                         }
                         if (upi.transactionNote.isNotBlank()) {
-                            DetailRow("Note", upi.transactionNote)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            DetailInfoRow(
+                                label = "Note",
+                                value = upi.transactionNote,
+                                icon = Icons.Default.Notes,
+                            )
                         }
                     }
                 }
@@ -789,7 +910,8 @@ private fun ScanResultCard(
         Text(
             text = "Actions",
             style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(start = 4.dp),
         )
         
         Spacer(modifier = Modifier.height(12.dp))
@@ -880,27 +1002,6 @@ private fun ScanResultCard(
             Spacer(modifier = Modifier.width(8.dp))
             Text("Scan Again")
         }
-    }
-}
-
-@Composable
-private fun DetailRow(label: String, value: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium
-        )
     }
 }
 
